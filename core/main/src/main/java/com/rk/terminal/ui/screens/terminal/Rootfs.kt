@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import com.rk.libcommons.child
 import com.rk.libcommons.localDir
 import com.rk.libcommons.toast
+import com.rk.settings.Preference
 import com.rk.settings.Settings
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -23,7 +25,7 @@ enum class ExecMode(val value: Int) {
 }
 
 object Rootfs {
-    private const val WOLFI_RELEASE = "https://github.com/leloush-x/wolfi-os-rootfs/releases/download/wolfi-latest"
+    private const val WOLFI_UPDATED_AT = "wolfi_updated_at"
 
     var isInstalled = mutableStateOf(false)
     var execMode = mutableStateOf(ExecMode.fromInt(Settings.exec_mode))
@@ -47,8 +49,13 @@ object Rootfs {
         return isExtracted || isArchivePresent
     }
 
-    fun downloadWolfi(context: Context) {
-        if (wolfiDownloading || isWolfiDownloaded(context)) return
+    fun downloadWolfi(context: Context) = syncWolfi(context, checkFirst = false)
+
+    fun checkWolfiUpdate(context: Context) = syncWolfi(context, checkFirst = true)
+
+    private fun syncWolfi(context: Context, checkFirst: Boolean) {
+        if (wolfiDownloading) return
+        if (!checkFirst && isWolfiDownloaded(context)) return
         val abi = Build.SUPPORTED_ABIS.firstOrNull { it == "arm64-v8a" || it == "x86_64" }
         if (abi == null) {
             toast("Wolfi requires arm64 or x86_64, use Alpine on this device")
@@ -56,14 +63,20 @@ object Rootfs {
         }
         val arch = if (abi == "arm64-v8a") "aarch64" else "x86_64"
         wolfiDownloading = true
-        toast("Downloading Wolfi rootfs (~24 MB)")
+        if (!checkFirst) toast("Downloading Wolfi rootfs (~24 MB)")
         Thread {
             val tmp = context.filesDir.child("wolfi.tar.gz.part")
             try {
-                var url = "$WOLFI_RELEASE/wolfi-rootfs-$arch.tar.gz"
+                val (updatedAt, url) = fetchWolfiRelease(arch)
+                if (checkFirst && isWolfiDownloaded(context) && Preference.getString(WOLFI_UPDATED_AT, "") == updatedAt) {
+                    toast("Wolfi rootfs is up to date")
+                    return@Thread
+                }
+                if (checkFirst) toast("Updating Wolfi rootfs...")
+                var downloadUrl = url
                 var redirects = 0
                 while (true) {
-                    val conn = URL(url).openConnection() as HttpURLConnection
+                    val conn = URL(downloadUrl).openConnection() as HttpURLConnection
                     conn.connectTimeout = 15000
                     conn.readTimeout = 60000
                     conn.instanceFollowRedirects = false
@@ -76,7 +89,7 @@ object Rootfs {
                             break
                         }
                         301, 302, 303, 307, 308 -> {
-                            url = conn.getHeaderField("Location") ?: throw IOException("Missing redirect location")
+                            downloadUrl = conn.getHeaderField("Location") ?: throw IOException("Missing redirect location")
                             conn.disconnect()
                             if (++redirects > 5) throw IOException("Too many redirects")
                         }
@@ -88,14 +101,46 @@ object Rootfs {
                     tmp.copyTo(target, overwrite = true)
                     tmp.delete()
                 }
-                toast("Wolfi rootfs downloaded")
+                val dir = context.localDir().child("wolfi")
+                if (dir.exists() && dir.list()?.isNotEmpty() == true) {
+                    extractRootfs(target, dir)
+                }
+                Preference.setString(WOLFI_UPDATED_AT, updatedAt)
+                toast(if (checkFirst) "Wolfi rootfs updated" else "Wolfi rootfs downloaded")
             } catch (e: Exception) {
                 tmp.delete()
-                toast("Wolfi download failed: ${e.message}")
+                toast("Wolfi ${if (checkFirst) "update" else "download"} failed: ${e.message}")
             } finally {
                 wolfiDownloading = false
             }
         }.start()
+    }
+
+    private fun fetchWolfiRelease(arch: String): Pair<String, String> {
+        val conn = URL("https://api.github.com/repos/leloush-x/wolfi-os-rootfs/releases/tags/wolfi-latest").openConnection() as HttpURLConnection
+        conn.connectTimeout = 15000
+        conn.readTimeout = 30000
+        conn.setRequestProperty("Accept", "application/vnd.github+json")
+        val json = conn.inputStream.bufferedReader().use { it.readText() }
+        conn.disconnect()
+        val assets = JSONObject(json).getJSONArray("assets")
+        for (i in 0 until assets.length()) {
+            val asset = assets.getJSONObject(i)
+            if (asset.getString("name").contains(arch)) {
+                return asset.getString("updated_at") to asset.getString("browser_download_url")
+            }
+        }
+        throw IOException("No $arch asset in latest release")
+    }
+
+    private fun extractRootfs(archive: File, dir: File) {
+        val process = ProcessBuilder("/system/bin/sh", "-c", "tar -xf '${archive.absolutePath}' -C '${dir.absolutePath}'")
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText()
+        if (process.waitFor() != 0) {
+            throw IOException("Extract failed${if (output.isBlank()) "" else ": $output.trim()"}")
+        }
     }
 
     fun isWolfiDownloaded(context: Context): Boolean {
