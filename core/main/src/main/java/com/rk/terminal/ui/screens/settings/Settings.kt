@@ -80,6 +80,11 @@ object LoginShell {
     const val ASH = 3
 }
 
+object Distro {
+    const val ALPINE = 0
+    const val WOLFI = 1
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Settings(
@@ -91,6 +96,7 @@ fun Settings(
     var selectedWorkingMode by remember { mutableIntStateOf(Settings.working_Mode) }
     var selectedInputMode by remember { mutableIntStateOf(Settings.input_mode) }
     var selectedLoginShell by remember { mutableIntStateOf(Settings.login_shell) }
+    var selectedDistro by remember { mutableIntStateOf(Settings.distro) }
     var selectedExecMode by remember { mutableStateOf(Rootfs.execMode.value) }
     var customSessions by remember { mutableStateOf(CustomSessions.getAll()) }
     var showAddCustomSession by remember { mutableStateOf(false) }
@@ -133,6 +139,30 @@ fun Settings(
                     defaultCustomId = session.id
                     Settings.default_is_custom = true
                     CustomSessions.setDefault(session.id)
+                }
+            }
+        }
+
+        PreferenceGroup(heading = "Distribution") {
+            DistroOption(
+                title = "Alpine",
+                description = "musl libc, tiny (~5 MB) and lightweight",
+                mode = Distro.ALPINE,
+                currentMode = selectedDistro
+            ) {
+                selectedDistro = it
+                Settings.distro = it
+            }
+            DistroOption(
+                title = "Wolfi",
+                description = "glibc - prebuilt binaries and PyPI wheels work out of the box, faster builds and runtime",
+                mode = Distro.WOLFI,
+                currentMode = selectedDistro
+            ) {
+                selectedDistro = it
+                Settings.distro = it
+                if (it == Distro.WOLFI) {
+                    Rootfs.downloadWolfi(context)
                 }
             }
         }
@@ -341,6 +371,22 @@ private fun ExecModeOption(title: String, description: String, mode: ExecMode, c
 
 @Composable
 private fun LoginShellOption(title: String, description: String, mode: Int, currentMode: Int, onSelect: (Int) -> Unit) {
+    SettingsCard(
+        title = { Text(title) },
+        description = { Text(description) },
+        startWidget = {
+            RadioButton(
+                modifier = Modifier.padding(start = 8.dp),
+                selected = currentMode == mode,
+                onClick = { onSelect(mode) }
+            )
+        },
+        onClick = { onSelect(mode) }
+    )
+}
+
+@Composable
+private fun DistroOption(title: String, description: String, mode: Int, currentMode: Int, onSelect: (Int) -> Unit) {
     SettingsCard(
         title = { Text(title) },
         description = { Text(description) },

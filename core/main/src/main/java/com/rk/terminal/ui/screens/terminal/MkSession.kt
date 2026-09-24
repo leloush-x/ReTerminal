@@ -10,6 +10,7 @@ import com.rk.libcommons.localLibDir
 import com.rk.terminal.App.Companion.getTempDir
 import com.rk.terminal.BuildConfig
 import com.rk.settings.Settings
+import com.rk.terminal.ui.screens.settings.Distro
 import com.rk.terminal.ui.screens.settings.WorkingMode
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
@@ -99,6 +100,8 @@ object MkSession {
                 "CHROOT=${if (File("/system/bin/chroot").exists()) "/system/bin/chroot" else "/system/xbin/chroot"}",
                 "USE_CHROOT=${if (useChroot) "1" else "0"}",
                 "RETERM_LOGIN_SHELL=${Settings.login_shell}",
+                "ROOTFS_TAR=${filesDir}/${if (Settings.distro == Distro.WOLFI) "wolfi" else "alpine"}.tar.gz",
+                "ROOTFS_DIR=${localDir()}/${if (Settings.distro == Distro.WOLFI) "wolfi" else "alpine"}",
             )
 
             val loader32 = "${applicationInfo.nativeLibraryDir}/libloader32.so"

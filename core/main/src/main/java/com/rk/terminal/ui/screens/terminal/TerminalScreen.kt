@@ -30,9 +30,11 @@ import androidx.navigation.NavController
 import com.rk.components.compose.preferences.base.PreferenceGroup
 import com.rk.libcommons.child
 import com.rk.resources.strings
+import com.rk.settings.Settings
 import com.rk.terminal.ui.activities.terminal.MainActivity
 import com.rk.terminal.ui.activities.terminal.MainViewModel
 import com.rk.terminal.ui.components.SetStatusBarTextColor
+import com.rk.terminal.ui.screens.settings.Distro
 import com.rk.terminal.ui.screens.settings.SettingsCard
 import com.rk.terminal.ui.screens.settings.WorkingMode
 import com.rk.terminal.ui.screens.terminal.virtualkeys.VirtualKeysListener
@@ -189,11 +191,13 @@ private fun AddSessionDialog(
     onCreateCustomSession: (CustomSession) -> Unit
 ) {
     val customSessions = remember { CustomSessions.getAll() }
+    val rootfsTitle = if (Settings.distro == Distro.WOLFI) "Wolfi" else "Alpine"
+    val rootfsDesc = if (Settings.distro == Distro.WOLFI) "Wolfi Linux (glibc)" else stringResource(strings.alpine_desc)
     BasicAlertDialog(onDismissRequest = onDismiss) {
         PreferenceGroup {
             SettingsCard(
-                title = { Text("Alpine") },
-                description = { Text(stringResource(strings.alpine_desc)) },
+                title = { Text(rootfsTitle) },
+                description = { Text(rootfsDesc) },
                 onClick = { onCreateSession(WorkingMode.ALPINE) }
             )
             SettingsCard(
