@@ -77,5 +77,5 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-$SU -c "'$CHROOT' '$ALPINE_DIR' /usr/bin/env -i HOME=/root PATH=/bin:/sbin:/usr/bin:/usr/sbin sh '$PREFIX/local/bin/init' $*"
+$SU -c "'$CHROOT' '$ALPINE_DIR' /usr/bin/env -i HOME=/root PATH=/bin:/sbin:/usr/bin:/usr/sbin RETERM_LOGIN_SHELL=${RETERM_LOGIN_SHELL:-0} sh '$PREFIX/local/bin/init' $*"
 cleanup

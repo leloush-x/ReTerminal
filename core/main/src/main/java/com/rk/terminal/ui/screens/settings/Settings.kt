@@ -73,6 +73,13 @@ object InputMode {
     const val VISIBLE_PASSWORD = 2
 }
 
+object LoginShell {
+    const val DISTRO = 0
+    const val BASH = 1
+    const val SH = 2
+    const val ASH = 3
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Settings(
@@ -83,6 +90,7 @@ fun Settings(
     val context = LocalContext.current
     var selectedWorkingMode by remember { mutableIntStateOf(Settings.working_Mode) }
     var selectedInputMode by remember { mutableIntStateOf(Settings.input_mode) }
+    var selectedLoginShell by remember { mutableIntStateOf(Settings.login_shell) }
     var selectedExecMode by remember { mutableStateOf(Rootfs.execMode.value) }
     var customSessions by remember { mutableStateOf(CustomSessions.getAll()) }
     var showAddCustomSession by remember { mutableStateOf(false) }
@@ -137,6 +145,45 @@ fun Settings(
             ExecModeOption("Proot", "No root required, slightly slower", ExecMode.PROOT, selectedExecMode) {
                 selectedExecMode = it
                 Rootfs.setExecMode(it)
+            }
+        }
+
+        PreferenceGroup(heading = "Login Shell") {
+            LoginShellOption(
+                title = "Distro default",
+                description = "ash on Alpine, sh on Wolfi",
+                mode = LoginShell.DISTRO,
+                currentMode = selectedLoginShell
+            ) {
+                selectedLoginShell = it
+                Settings.login_shell = it
+            }
+            LoginShellOption(
+                title = "bash",
+                description = "/bin/bash (runs apk add bash if missing)",
+                mode = LoginShell.BASH,
+                currentMode = selectedLoginShell
+            ) {
+                selectedLoginShell = it
+                Settings.login_shell = it
+            }
+            LoginShellOption(
+                title = "sh",
+                description = "/bin/sh",
+                mode = LoginShell.SH,
+                currentMode = selectedLoginShell
+            ) {
+                selectedLoginShell = it
+                Settings.login_shell = it
+            }
+            LoginShellOption(
+                title = "ash",
+                description = "/bin/ash",
+                mode = LoginShell.ASH,
+                currentMode = selectedLoginShell
+            ) {
+                selectedLoginShell = it
+                Settings.login_shell = it
             }
         }
 
@@ -278,6 +325,22 @@ private fun InputModeOption(title: String, description: String, mode: Int, curre
 
 @Composable
 private fun ExecModeOption(title: String, description: String, mode: ExecMode, currentMode: ExecMode?, onSelect: (ExecMode) -> Unit) {
+    SettingsCard(
+        title = { Text(title) },
+        description = { Text(description) },
+        startWidget = {
+            RadioButton(
+                modifier = Modifier.padding(start = 8.dp),
+                selected = currentMode == mode,
+                onClick = { onSelect(mode) }
+            )
+        },
+        onClick = { onSelect(mode) }
+    )
+}
+
+@Composable
+private fun LoginShellOption(title: String, description: String, mode: Int, currentMode: Int, onSelect: (Int) -> Unit) {
     SettingsCard(
         title = { Text(title) },
         description = { Text(description) },
