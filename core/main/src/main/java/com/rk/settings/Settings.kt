@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.rk.libcommons.application
 import com.rk.terminal.ui.screens.settings.WorkingMode
 import com.rk.terminal.ui.screens.settings.InputMode
+import com.rk.terminal.ui.screens.settings.LoginShell
 
 object Settings {
     //Boolean
@@ -93,6 +94,10 @@ object Settings {
     var exec_mode
         get() = Preference.getInt(key = "exec_mode", default = -1)
         set(value) = Preference.setInt(key = "exec_mode", value)
+
+    var login_shell
+        get() = Preference.getInt(key = "login_shell", default = LoginShell.DISTRO)
+        set(value) = Preference.setInt(key = "login_shell", value)
 
     var default_is_custom
         get() = Preference.getBoolean(key = "default_is_custom", default = false)
