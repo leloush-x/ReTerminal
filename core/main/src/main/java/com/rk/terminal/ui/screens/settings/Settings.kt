@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import com.rk.components.compose.preferences.base.PreferenceGroup
 import com.rk.components.compose.preferences.base.PreferenceLayout
 import com.rk.components.compose.preferences.base.PreferenceTemplate
+import com.rk.libcommons.toast
 import com.rk.resources.strings
 import com.rk.settings.Settings
 import com.rk.terminal.ui.activities.terminal.MainActivity
@@ -95,8 +96,8 @@ fun Settings(
     val context = LocalContext.current
     var selectedWorkingMode by remember { mutableIntStateOf(Settings.working_Mode) }
     var selectedInputMode by remember { mutableIntStateOf(Settings.input_mode) }
-    var selectedLoginShell by remember { mutableIntStateOf(Settings.login_shell) }
-    var selectedDistro by remember { mutableIntStateOf(Settings.distro) }
+    var selectedLoginShell by remember { mutableIntStateOf(Rootfs.loginShell.value) }
+    var selectedDistro by remember { mutableIntStateOf(Rootfs.distro.value) }
     var selectedExecMode by remember { mutableStateOf(Rootfs.execMode.value) }
     var customSessions by remember { mutableStateOf(CustomSessions.getAll()) }
     var showAddCustomSession by remember { mutableStateOf(false) }
@@ -151,7 +152,8 @@ fun Settings(
                 currentMode = selectedDistro
             ) {
                 selectedDistro = it
-                Settings.distro = it
+                Rootfs.setDistro(it)
+                toast("Distribution applies to new sessions")
             }
             DistroOption(
                 title = "Wolfi",
@@ -160,7 +162,8 @@ fun Settings(
                 currentMode = selectedDistro
             ) {
                 selectedDistro = it
-                Settings.distro = it
+                Rootfs.setDistro(it)
+                toast("Distribution applies to new sessions")
                 if (it == Distro.WOLFI) {
                     Rootfs.downloadWolfi(context)
                 }
@@ -186,42 +189,39 @@ fun Settings(
         }
 
         PreferenceGroup(heading = "Login Shell") {
+            val onLoginShellSelected: (Int) -> Unit = { mode ->
+                selectedLoginShell = mode
+                Rootfs.setLoginShell(mode)
+                toast("Login shell applies to new sessions")
+            }
             LoginShellOption(
                 title = "Distro default",
                 description = "ash on Alpine, sh on Wolfi",
                 mode = LoginShell.DISTRO,
-                currentMode = selectedLoginShell
-            ) {
-                selectedLoginShell = it
-                Settings.login_shell = it
-            }
+                currentMode = selectedLoginShell,
+                onSelect = onLoginShellSelected
+            )
             LoginShellOption(
                 title = "bash",
                 description = "/bin/bash (runs apk add bash if missing)",
                 mode = LoginShell.BASH,
-                currentMode = selectedLoginShell
-            ) {
-                selectedLoginShell = it
-                Settings.login_shell = it
-            }
+                currentMode = selectedLoginShell,
+                onSelect = onLoginShellSelected
+            )
             LoginShellOption(
                 title = "sh",
                 description = "/bin/sh",
                 mode = LoginShell.SH,
-                currentMode = selectedLoginShell
-            ) {
-                selectedLoginShell = it
-                Settings.login_shell = it
-            }
+                currentMode = selectedLoginShell,
+                onSelect = onLoginShellSelected
+            )
             LoginShellOption(
                 title = "ash",
                 description = "/bin/ash",
                 mode = LoginShell.ASH,
-                currentMode = selectedLoginShell
-            ) {
-                selectedLoginShell = it
-                Settings.login_shell = it
-            }
+                currentMode = selectedLoginShell,
+                onSelect = onLoginShellSelected
+            )
         }
 
         PreferenceGroup(heading = stringResource(strings.input_mode)) {

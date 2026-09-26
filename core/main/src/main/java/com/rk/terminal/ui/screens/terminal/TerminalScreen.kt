@@ -30,7 +30,6 @@ import androidx.navigation.NavController
 import com.rk.components.compose.preferences.base.PreferenceGroup
 import com.rk.libcommons.child
 import com.rk.resources.strings
-import com.rk.settings.Settings
 import com.rk.terminal.ui.activities.terminal.MainActivity
 import com.rk.terminal.ui.activities.terminal.MainViewModel
 import com.rk.terminal.ui.components.SetStatusBarTextColor
@@ -191,8 +190,9 @@ private fun AddSessionDialog(
     onCreateCustomSession: (CustomSession) -> Unit
 ) {
     val customSessions = remember { CustomSessions.getAll() }
-    val rootfsTitle = if (Settings.distro == Distro.WOLFI) "Wolfi" else "Alpine"
-    val rootfsDesc = if (Settings.distro == Distro.WOLFI) "Wolfi Linux (glibc)" else stringResource(strings.alpine_desc)
+    val isWolfi = Rootfs.distro.value == Distro.WOLFI
+    val rootfsTitle = if (isWolfi) "Wolfi" else "Alpine"
+    val rootfsDesc = if (isWolfi) "Wolfi Linux (glibc)" else stringResource(strings.alpine_desc)
     BasicAlertDialog(onDismissRequest = onDismiss) {
         PreferenceGroup {
             SettingsCard(

@@ -29,6 +29,8 @@ object Rootfs {
 
     var isInstalled = mutableStateOf(false)
     var execMode = mutableStateOf(ExecMode.fromInt(Settings.exec_mode))
+    var distro = mutableStateOf(Settings.distro)
+    var loginShell = mutableStateOf(Settings.login_shell)
 
     @Volatile
     private var wolfiDownloading = false
@@ -36,6 +38,16 @@ object Rootfs {
     fun setExecMode(mode: ExecMode) {
         execMode.value = mode
         Settings.exec_mode = mode.value
+    }
+
+    fun setDistro(mode: Int) {
+        distro.value = mode
+        Settings.distro = mode
+    }
+
+    fun setLoginShell(mode: Int) {
+        loginShell.value = mode
+        Settings.login_shell = mode
     }
 
     fun checkInstallation(context: Context) {
@@ -102,11 +114,18 @@ object Rootfs {
                     tmp.delete()
                 }
                 val dir = context.localDir().child("wolfi")
-                if (dir.exists() && dir.list()?.isNotEmpty() == true) {
+                val extracted = dir.exists() && dir.list()?.isNotEmpty() == true
+                if (extracted) {
                     extractRootfs(target, dir)
                 }
                 Preference.setString(WOLFI_UPDATED_AT, updatedAt)
-                toast(if (checkFirst) "Wolfi rootfs updated" else "Wolfi rootfs downloaded")
+                toast(
+                    when {
+                        !extracted -> "Wolfi rootfs downloaded, extracts on first session"
+                        checkFirst -> "Wolfi rootfs updated"
+                        else -> "Wolfi rootfs downloaded"
+                    }
+                )
             } catch (e: Exception) {
                 tmp.delete()
                 toast("Wolfi ${if (checkFirst) "update" else "download"} failed: ${e.message}")
